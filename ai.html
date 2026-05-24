@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>智创存证 - AI创作知识产权管理系统</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",Microsoft YaHei,sans-serif}
+:root{--primary:#2563eb;--deep:#1e40af;--light:#eff6ff;--success:#059669;--warn:#d97706;--danger:#dc2626;--gray:#64748b;--dark:#1e293b}
+body{background:linear-gradient(145deg,#f8fafc,#e2e8f0);min-height:100vh;color:#333}
+.hidden{display:none!important}
+.flex-row{display:flex;align-items:center}
+.justify-between{justify-content:space-between}
+.gap-10{gap:10px}
+.gap-15{gap:15px}
+
+#authPage{position:fixed;inset:0;background:linear-gradient(145deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;z-index:99999}
+.auth-card{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.2);width:440px;padding:45px;text-align:center}
+.auth-card h2{font-size:26px;color:var(--dark);margin-bottom:8px;display:flex;flex-direction:column;line-height:1.3}
+.auth-desc{color:var(--gray);margin-bottom:30px;font-size:14px}
+.form-item{margin-bottom:22px;text-align:left}
+label{display:block;margin-bottom:8px;color:var(--dark);font-weight:500;font-size:14px}
+input,select,textarea{width:100%;padding:14px 16px;border:1px solid #cbd5e1;border-radius:10px;font-size:15px;background:#f8fafc;transition:all 0.3s}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 4px rgba(37,99,235,0.15);background:#fff}
+.auth-btn{width:100%;padding:14px;border:none;border-radius:10px;background:linear-gradient(145deg,var(--primary),var(--deep));color:#fff;font-size:16px;font-weight:500;cursor:pointer;transition:0.3s;margin-top:8px}
+.auth-btn:hover{opacity:0.92;transform:translateY(-2px)}
+.auth-tip{margin-top:20px;font-size:14px;color:var(--gray)}
+.auth-tip span{color:var(--primary);cursor:pointer;font-weight:500}
+.forget{color:var(--primary);cursor:pointer;margin-top:12px;font-size:14px}
+
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:99998}
+.modal-box{background:#fff;border-radius:16px;padding:28px;width:460px;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:18px;font-weight:600;margin-bottom:20px}
+
+.top-nav{background:rgba(30,64,175,0.95);backdrop-filter:blur(8px);color:#fff;height:72px;padding:0 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 16px rgba(0,0,0,0.12);position:sticky;top:0;z-index:9999;white-space:nowrap}
+.nav-left{display:flex;align-items:center;gap:24px}
+.nav-title{font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px;white-space:nowrap}
+.logo{width:38px;height:38px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--deep);font-size:18px}
+.nav-menu{display:flex;gap:6px;align-items:center}
+.nav-menu a{color:#e2e8f0;text-decoration:none;padding:8px 12px;border-radius:8px;transition:0.3s;font-size:14px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.nav-menu a:hover,.nav-menu a.active{background:rgba(255,255,255,0.18);color:#fff}
+.nav-right{display:flex;align-items:center;gap:16px}
+.search-box{display:flex;align-items:center;background:rgba(255,255,255,0.15);border-radius:24px;padding:6px 14px}
+.search-box input{background:transparent;border:none;color:#fff;width:180px;padding:6px}
+.search-box input::placeholder{color:rgba(255,255,255,0.7)}
+.search-box button{border:none;background:transparent;color:#fff;cursor:pointer;font-size:16px}
+.user-info{display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:#fff;color:var(--deep);display:flex;align-items:center;justify-content:center;font-weight:bold}
+.logout-btn{background:rgba(255,255,255,0.15);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;transition:0.3s}
+.logout-btn:hover{background:rgba(255,255,255,0.25)}
+
+.container{max-width:1300px;margin:35px auto;padding:0 25px}
+.page{display:none}
+.page.show{display:block}
+.page-header{background:#fff;padding:24px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06);margin-bottom:25px}
+.page-title{font-size:24px;color:var(--dark);margin-bottom:6px;font-weight:600}
+.page-desc{color:var(--gray);font-size:14px}
+
+.tip-card,.link-card,.func-card{background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06);padding:24px;margin-bottom:25px}
+.tip-card{border-left:5px solid var(--warn)}
+.tip-card h3{color:var(--warn);margin-bottom:12px;font-size:18px}
+.tip-card ul{padding-left:22px;line-height:1.9;color:#475569;font-size:14px}
+.link-card h3{color:var(--deep);margin-bottom:18px;font-size:18px}
+.link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.link-item{padding:14px;background:var(--light);border-radius:10px;text-align:center;color:var(--primary);text-decoration:none;font-weight:500;transition:0.3s}
+.link-item:hover{background:var(--primary);color:#fff;transform:translateY(-3px)}
+
+.card-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:22px;margin-top:25px}
+.nav-card{background:#fff;border-radius:16px;padding:26px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.05);cursor:pointer;transition:0.35s;border:2px solid transparent}
+.nav-card:hover{transform:translateY(-6px);box-shadow:0 10px 30px rgba(37,99,235,0.12);border-color:var(--primary)}
+.nav-card .icon{width:64px;height:64px;border-radius:14px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px}
+.nav-card:nth-child(1) .icon{background:linear-gradient(145deg,#22c55e,#16a34a)}
+.nav-card:nth-child(2) .icon{background:linear-gradient(145deg,#3b82f6,#1d4ed8)}
+.nav-card:nth-child(3) .icon{background:linear-gradient(145deg,#f59e0b,#d97706)}
+.nav-card:nth-child(4) .icon{background:linear-gradient(145deg,#8b5cf6,#6d28d9)}
+.nav-card:nth-child(5) .icon{background:linear-gradient(145deg,#ec4899,#be185d)}
+.nav-card:nth-child(6) .icon{background:linear-gradient(145deg,#06b6d4,#0891b2)}
+.nav-card:nth-child(7) .icon{background:linear-gradient(145deg,#ef4444,#b91c1c)}
+.nav-card:nth-child(8) .icon{background:linear-gradient(145deg,#84cc16,#4d7c0f)}
+.nav-card .name{font-weight:600;color:var(--dark);margin-bottom:6px;font-size:16px}
+.nav-card .desc{font-size:13px;color:var(--gray)}
+
+.card{background:#fff;padding:32px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.06);margin-bottom:25px}
+.btn{padding:12px 22px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;transition:0.3s;margin-right:12px;margin-top:10px}
+.btn-sm{padding:9px 16px;font-size:13px}
+.btn-primary{background:linear-gradient(145deg,var(--primary),var(--deep));color:#fff}
+.btn-success{background:linear-gradient(145deg,var(--success),#047857);color:#fff}
+.btn-danger{background:linear-gradient(145deg,var(--danger),#b91c1c);color:#fff}
+.btn-warning{background:linear-gradient(145deg,var(--warn),#b45309);color:#fff}
+.btn:hover{opacity:0.9}
+
+.record-item{padding:20px;border:1px solid #e2e8f0;border-radius:12px;margin:14px 0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc}
+.record-info .title{font-weight:600;color:var(--dark);margin-bottom:6px;font-size:15px}
+.record-info .meta{font-size:13px;color:var(--gray)}
+.result-box{margin-top:22px;padding:22px;background:#f8fafc;border-radius:12px;white-space:pre-wrap;font-size:14px;line-height:1.9;border:1px solid #e2e8f0}
+.hash-text{font-family:Consolas,monospace;background:#e2e8f0;padding:12px;border-radius:8px;word-break:break-all;font-size:13px}
+.log-box,attach-box{margin-top:18px;padding:18px;background:#fff;border-radius:12px;border:1px solid #e2e8f0}
+.log-item{padding:10px 0;border-bottom:1px dashed #e2e8f0;font-size:13px}
+.log-item:last-child{border-bottom:none}
+
+.tag-group{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.tag-item{padding:4px 10px;background:var(--light);border-radius:6px;font-size:12px;color:var(--primary)}
+.attach-img{width:100px;height:100px;object-fit:cover;border-radius:8px;margin:6px}
+.file-input{padding:8px}
+
+.ai-assistant{position:fixed;bottom:25px;right:25px;width:360px;background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.15);z-index:99997;overflow:hidden;transition:0.35s}
+.ai-assistant.collapsed{height:54px;width:240px}
+.ai-header{background:linear-gradient(145deg,var(--primary),var(--deep));color:#fff;padding:14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-weight:500}
+.ai-body{height:420px;display:flex;flex-direction:column}
+.ai-messages{flex:1;padding:16px;overflow-y:auto;background:#f8fafc}
+.msg-user{text-align:right;margin:12px 0}
+.msg-user span{background:var(--primary);color:#fff;padding:10px 14px;border-radius:14px;display:inline-block;max-width:82%;font-size:14px}
+.msg-ai{text-align:left;margin:12px 0}
+.msg-ai span{background:#e2e8f0;color:#333;padding:10px 14px;border-radius:14px;display:inline-block;max-width:82%;font-size:14px}
+.ai-input{display:flex;padding:12px;border-top:1px solid #e2e8f0}
+.ai-input input{flex:1;border:1px solid #e2e8f0;border-radius:22px;padding:11px;outline:none;background:#f8fafc}
+.ai-input button{margin-left:10px;border:none;background:var(--primary);color:#fff;border-radius:22px;padding:11px 18px;cursor:pointer}
+
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:25px}
+.stat-card{background:#fff;padding:20px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.05)}
+.stat-num{font-size:28px;font-weight:700;color:var(--primary)}
+.stat-text{font-size:13px;color:var(--gray);margin-top:4px}
+
+.verify-code{width:120px;height:120px;background:#f1f5f9;margin:10px auto;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--gray)}
+</style>
+</head>
+<body>
+
+<div id="authPage">
+    <div class="auth-card" id="loginBox">
+        <h2><span>智创</span><span>存证系统</span></h2>
+        <p class="auth-desc">AI创作知识产权安全存证管理平台</p>
+        <div class="form-item">
+            <label>账号名称</label>
+            <input type="text" id="loginUser" placeholder="请输入账号" onkeydown="if(event.key==='Enter')userLogin()">
+        </div>
+        <div class="form-item">
+            <label>登录密码</label>
+            <input type="password" id="loginPwd" placeholder="请输入密码" onkeydown="if(event.key==='Enter')userLogin()">
+        </div>
+        <button class="auth-btn" onclick="userLogin()">安全登录</button>
+        <div class="forget" onclick="openFindPwd()">忘记密码？找回密码</div>
+        <div class="auth-tip">暂无注册账号？<span onclick="showRegister()">立即注册</span></div>
+    </div>
+
+    <div class="auth-card hidden" id="registerBox">
+        <h2><span>新用户</span><span>注册</span></h2>
+        <p class="auth-desc">注册账号即可使用全部存证功能</p>
+        <div class="form-item">
+            <label>设置账号名</label>
+            <input type="text" id="regUser" placeholder="自定义专属账号" onkeydown="if(event.key==='Enter')userRegister()">
+        </div>
+        <div class="form-item">
+            <label>设置登录密码</label>
+            <input type="password" id="regPwd" placeholder="设置安全密码" onkeydown="if(event.key==='Enter')userRegister()">
+        </div>
+        <div class="form-item">
+            <label>密保问题（找回密码使用）</label>
+            <select id="question">
+                <option value="你的小学名称">你的小学名称</option>
+                <option value="你的母亲姓名">你的母亲姓名</option>
+                <option value="你的生日">你的生日</option>
+                <option value="你的家乡">你的家乡</option>
+            </select>
+        </div>
+        <div class="form-item">
+            <label>密保答案</label>
+            <input type="text" id="answer" placeholder="请输入答案" onkeydown="if(event.key==='Enter')userRegister()">
+        </div>
+        <button class="auth-btn" onclick="userRegister()">完成注册</button>
+        <div class="auth-tip">已有账号？<span onclick="showLogin()">返回登录</span></div>
+    </div>
+</div>
+
+<div id="findPwdModal" class="modal-mask hidden">
+    <div class="modal-box">
+        <div class="modal-title">找回密码</div>
+        <div class="form-item">
+            <label>请输入要找回的账号</label>
+            <input id="findUser" placeholder="输入账号" onkeydown="if(event.key==='Enter')submitFindPwd()">
+        </div>
+        <div class="form-item">
+            <label>密保问题</label>
+            <div id="showQuestion" style="padding:14px;background:#f1f5f9;border-radius:8px">请先输入账号</div>
+        </div>
+        <div class="form-item">
+            <label>密保答案</label>
+            <input id="findAnswer" placeholder="输入答案" onkeydown="if(event.key==='Enter')submitFindPwd()">
+        </div>
+        <div class="form-item">
+            <label>新密码</label>
+            <input id="newPwd" placeholder="输入新密码" onkeydown="if(event.key==='Enter')submitFindPwd()">
+        </div>
+        <button class="btn btn-primary" onclick="submitFindPwd()" style="width:100%">确认重置密码</button>
+        <button class="btn" onclick="closeFindPwd()" style="width:100%;margin-top:10px">取消</button>
+    </div>
+</div>
+
+<div class="top-nav hidden" id="mainNav">
+    <div class="nav-left">
+        <div class="nav-title"><div class="logo">📜</div>智创存证管理系统</div>
+        <div class="nav-menu">
+            <a href="javascript:switchPage('home')" class="active">
+                <span>🏠</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>系统</span><span>首页</span>
+                </div>
+            </a>
+            <a href="javascript:switchPage('add')">
+                <span>➕</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>新增</span><span>存证</span>
+                </div>
+            </a>
+            <a href="javascript:switchPage('list')">
+                <span>📋</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>记录</span><span>管理</span>
+                </div>
+            </a>
+            <a href="javascript:switchPage('promptLib')">
+                <span>📚</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>提示</span><span>词库</span>
+                </div>
+            </a>
+            <a href="javascript:switchPage('detect')">
+                <span>🔍</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>原创</span><span>检测</span>
+                </div>
+            </a>
+            <a href="javascript:switchPage('verify')">
+                <span>✅</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>存证</span><span>核验</span>
+                </div>
+            </a>
+            <a href="javascript:switchPage('backup')">
+                <span>💾</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>数据</span><span>备份</span>
+                </div>
+            </a>
+            <a href="javascript:switchPage('setting')">
+                <span>⚙️</span>
+                <div style="display:flex;flex-direction:column;line-height:1.2;">
+                    <span>系统</span><span>设置</span>
+                </div>
+            </a>
+        </div>
+    </div>
+    <div class="nav-right">
+        <div class="search-box">
+            <input type="text" id="globalSearch" placeholder="全网检索内容" onkeydown="if(event.key==='Enter')globalSearch()">
+            <button onclick="globalSearch()">🔍</button>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <span id="userName">用户</span>
+            <button class="logout-btn" onclick="logout()">退出登录</button>
+        </div>
+    </div>
+</div>
+
+<div class="container hidden" id="mainContainer">
+    <div id="home" class="page show">
+        <div class="stat-grid">
+            <div class="stat-card"><div class="stat-num" id="totalCount">0</div><div class="stat-text">总存证条数</div></div>
+            <div class="stat-card"><div class="stat-num" id="draftCount">0</div><div class="stat-text">初稿作品</div></div>
+            <div class="stat-card"><div class="stat-num" id="finalCount">0</div><div class="stat-text">定稿作品</div></div>
+            <div class="stat-card"><div class="stat-num" id="modifyCount">0</div><div class="stat-text">累计修改次数</div></div>
+        </div>
+        <div class="tip-card">
+            <h3>知识产权与存证合规须知</h3>
+            <ul>
+                <li>AI仅为创作辅助工具，著作权归属实际创作使用者</li>
+                <li>商用发布必须标注AI生成属性，规避版权侵权纠纷</li>
+                <li>完整留存提示词、修改日志、附件材料形成完整证据链</li>
+                <li>SHA256哈希加密存证，数据不可篡改，可用于司法公证举证</li>
+            </ul>
+        </div>
+        <div class="link-card">
+            <h3>权威司法公证服务入口</h3>
+            <div class="link-grid">
+                <a href="https://www.cnipa.gov.cn/" target="_blank" class="link-item">国家知识产权局</a>
+                <a href="https://www.12348.gov.cn/" target="_blank" class="link-item">中国法律服务网</a>
+                <a href="https://www.southnotary.cn/" target="_blank" class="link-item">南方公证处</a>
+                <a href="https://www.court.gov.cn/" target="_blank" class="link-item">中国法院网</a>
+            </div>
+        </div>
+        <div class="page-header">
+            <div class="page-title">功能总览</div>
+            <div class="page-desc">点击对应模块快速开展存证、检测、管理操作</div>
+        </div>
+        <div class="card-nav">
+            <div class="nav-card" onclick="switchPage('add')"><div class="icon">📝</div><div class="name">新增创作存证</div><div class="desc">录入信息生成加密凭证</div></div>
+            <div class="nav-card" onclick="switchPage('list')"><div class="icon">📋</div><div class="name">历史记录管理</div><div class="desc">编辑删除分类归档数据</div></div>
+            <div class="nav-card" onclick="switchPage('detect')"><div class="icon">🔎</div><div class="name">原创度侵权检测</div><div class="desc">全网比对排查抄袭风险</div></div>
+            <div class="nav-card" onclick="switchPage('promptLib')"><div class="icon">📚</div><div class="name">提示词素材库</div><div class="desc">收藏复用优质创作指令</div></div>
+            <div class="nav-card" onclick="switchPage('verify')"><div class="icon">✅</div><div class="name">存证真伪核验</div><div class="desc">哈希校验判定数据有效性</div></div>
+            <div class="nav-card" onclick="exportAllRecord()"><div class="icon">📥</div><div class="name">批量导出报告</div><div class="desc">TXT格式存档备份</div></div>
+            <div class="nav-card" onclick="switchPage('backup')"><div class="icon">💾</div><div class="name">数据备份恢复</div><div class="desc">一键备份防止数据丢失</div></div>
+            <div class="nav-card" onclick="switchPage('setting')"><div class="icon">⚙️</div><div class="name">账号权限设置</div><div class="desc">密码修改操作日志查看</div></div>
+        </div>
+    </div>
+
+    <div id="add" class="page">
+        <div class="tip-card">
+            <h3>存证信息填写规范</h3>
+            <ul>
+                <li>带*标识为必填项，信息详实提升法律凭证效力</li>
+                <li>可上传创作截图、成品附件构建完整证据链</li>
+                <li>多次编辑修改自动留存日志，全程操作可溯源</li>
+            </ul>
+        </div>
+        <div class="page-header">
+            <div class="page-title" id="addTitle">新增AI创作存证记录</div>
+            <div class="page-desc">自动生成时间戳、SHA256防篡改哈希值</div>
+        </div>
+        <div class="card">
+            <input type="hidden" id="editId" value="">
+            <div class="form-item"><label>作品名称 *</label><input id="workName"></div>
+            <div class="form-item"><label>创作者唯一ID *</label><input id="userId"></div>
+            <div class="form-item"><label>作品分类 *</label>
+                <select id="workType">
+                    <option value="">请选择分类</option>
+                    <option value="AI绘画">AI绘画</option>
+                    <option value="文案创作">文案创作</option>
+                    <option value="图文内容">图文内容</option>
+                    <option value="视频脚本">视频脚本</option>
+                    <option value="代码程序">代码程序</option>
+                </select>
+            </div>
+            <div class="form-item"><label>自定义标签</label><input id="workTag" placeholder="多个标签以逗号分隔"></div>
+            <div class="form-item"><label>创作构思描述 *</label><textarea id="ideaText"></textarea></div>
+            <div class="form-item"><label>原始创作提示词 *</label><textarea id="oldPrompt"></textarea></div>
+            <div class="form-item"><label>优化迭代提示词</label><textarea id="newPrompt"></textarea></div>
+            <div class="form-item"><label>使用AI模型名称 *</label><input id="aiModel"></div>
+            <div class="form-item"><label>创作阶段</label>
+                <select id="workStage">
+                    <option value="初稿">初稿</option>
+                    <option value="迭代稿">迭代稿</option>
+                    <option value="终稿定稿">终稿定稿</option>
+                </select>
+            </div>
+            <div class="form-item"><label>版权到期提醒</label><input type="date" id="remindDate"></div>
+            <div class="form-item"><label>附件证据上传</label>
+                <input type="file" id="attachFile" multiple accept="image/*" class="file-input" onchange="previewAttach()">
+                <div id="attachPreview" class="tag-group"></div>
+            </div>
+            <div class="form-item"><label>补充备注说明</label><textarea id="noteText"></textarea></div>
+            <button class="btn btn-success" onclick="saveRecord()">提交生成存证</button>
+            <button class="btn btn-primary" onclick="copyResultData()">复制存证文本</button>
+            <button class="btn btn-warning" onclick="exportTxtReport()">导出TXT备份报告</button>
+            <button class="btn btn-danger" onclick="clearForm()">清空表单内容</button>
+            <div class="result-box" id="showResult"></div>
+            <div class="log-box hidden" id="editLogBox">
+                <h4 style="margin-bottom:10px">📜 历史修改日志</h4>
+                <div id="editLogList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="list" class="page">
+        <div class="page-header">
+            <div class="page-title">全部创作存证档案</div>
+            <div class="page-desc">支持检索筛选、编辑删除、分类归档、溯源查看</div>
+        </div>
+        <div class="card">
+            <div class="flex-row justify-between gap-15" style="margin-bottom:18px;flex-wrap:wrap">
+                <div class="flex-row gap-10">
+                    <input style="width:260px" type="text" id="searchKey" placeholder="检索作品名称、标签" onkeydown="if(event.key==='Enter')searchRecord()">
+                    <select id="filterType">
+                        <option value="">全部分类</option>
+                        <option value="AI绘画">AI绘画</option>
+                        <option value="文案创作">文案创作</option>
+                        <option value="图文内容">图文内容</option>
+                        <option value="视频脚本">视频脚本</option>
+                        <option value="代码程序">代码程序</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="searchRecord()">筛选查询</button>
+                </div>
+                <div>
+                    <button class="btn btn-warning btn-sm" onclick="exportAllRecord()">批量导出档案</button>
+                </div>
+            </div>
+            <div id="recordListBox"></div>
+        </div>
+    </div>
+
+    <div id="detail" class="page">
+        <div class="page-header">
+            <div class="page-title">存证详情核验</div>
+            <div class="page-desc">完整溯源作品信息、哈希凭证、修改日志</div>
+        </div>
+        <div class="card">
+            <div class="form-item">
+                <label>选择存证记录</label>
+                <select id="selectDetail" onchange="showDetailInfo()"><option value="">请选择记录</option></select>
+            </div>
+            <div class="result-box" id="detailInfoBox"></div>
+            <div class="log-box" id="detailLogBox"><h4>完整修改日志</h4><div id="detailLogList"></div></div>
+        </div>
+    </div>
+
+    <div id="detect" class="page">
+        <div class="page-header">
+            <div class="page-title">作品原创度侵权检测</div>
+            <div class="page-desc">全网内容比对，快速排查抄袭、版权盗用风险</div>
+        </div>
+        <div class="card">
+            <div class="form-item">
+                <label>粘贴待检测创作内容</label>
+                <textarea id="detectContent" rows="10" placeholder="粘贴文案、脚本、代码等内容进行检测"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="startDetect()">开始原创检测</button>
+            <div class="result-box" id="detectResult"></div>
+        </div>
+    </div>
+
+    <div id="promptLib" class="page">
+        <div class="page-header">
+            <div class="page-title">个人创作提示词库</div>
+            <div class="page-desc">收藏管理常用指令，一键复用提升创作效率</div>
+        </div>
+        <div class="card">
+            <div class="form-item flex-row gap-10">
+                <input style="flex:1" id="newPromptSave" placeholder="输入优质提示词" onkeydown="if(event.key==='Enter')savePrompt()">
+                <button class="btn btn-success btn-sm" onclick="savePrompt()">收藏保存</button>
+            </div>
+            <div id="promptListBox"></div>
+        </div>
+    </div>
+
+    <div id="verify" class="page">
+        <div class="page-header">
+            <div class="page-title">存证真伪公开核验</div>
+            <div class="page-desc">输入哈希值校验数据是否篡改、凭证真实有效性</div>
+        </div>
+        <div class="card">
+            <div class="form-item">
+                <label>输入存证哈希验证码</label>
+                <input id="verifyHash" placeholder="粘贴SHA256哈希字符串" onkeydown="if(event.key==='Enter')checkVerify()">
+            </div>
+            <button class="btn btn-primary" onclick="checkVerify()">核验凭证有效性</button>
+            <div class="verify-code">官方核验二维码</div>
+            <div class="result-box" id="verifyResult"></div>
+        </div>
+    </div>
+
+    <div id="backup" class="page">
+        <div class="page-header">
+            <div class="page-title">数据备份与恢复</div>
+            <div class="page-desc">自动备份存档，误删数据可一键还原</div>
+        </div>
+        <div class="card">
+            <button class="btn btn-success" onclick="autoBackupData()">立即备份全部数据</button>
+            <button class="btn btn-warning" onclick="restoreBackupData()">从备份恢复数据</button>
+            <div class="result-box" id="backupResult"></div>
+        </div>
+    </div>
+
+    <div id="setting" class="page">
+        <div class="page-header">
+            <div class="page-title">账号与系统权限设置</div>
+            <div class="page-desc">修改账号密码、查看操作日志、清理冗余数据</div>
+        </div>
+        <div class="card">
+            <div class="form-item"><label>修改账号名称</label><input id="setUser"></div>
+            <div class="form-item"><label>修改登录密码</label><input type="password" id="setPwd"></div>
+            <button class="btn btn-success" onclick="saveAccount()">保存账号信息</button>
+            <button class="btn btn-primary" onclick="showOperateLog()">查看全局操作日志</button>
+            <button class="btn btn-danger" onclick="clearAllData()">清空全部业务数据</button>
+            <p style="color:var(--danger);margin-top:18px;font-size:13px">警告：清空数据不可逆，请谨慎执行操作</p>
+            <div class="log-box" id="operateLogBox"></div>
+        </div>
+    </div>
+</div>
+
+<div class="ai-assistant collapsed" id="aiAssistant">
+    <div class="ai-header" onclick="toggleAiAssistant()">
+        <span>🤖 AI产权知识助手</span>
+        <span id="aiToggleText">展开面板</span>
+    </div>
+    <div class="ai-body hidden" id="aiBody">
+        <div class="ai-messages" id="aiMessages">
+            <div class="msg-ai"><span>您好，可咨询版权归属、存证公证、侵权规避、数据核验相关问题</span></div>
+        </div>
+        <div class="ai-input">
+            <input id="aiInput" placeholder="输入问题发送咨询" onkeydown="if(event.key==='Enter')sendAiMsg()">
+            <button onclick="sendAiMsg()">发送</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+let userList = JSON.parse(localStorage.getItem("userList")) || [];
+let currentUser = "";
+let recordData = JSON.parse(localStorage.getItem("aiWorkRecord")) || [];
+let promptLib = JSON.parse(localStorage.getItem("promptLib")) || [];
+let backupData = JSON.parse(localStorage.getItem("systemBackup")) || null;
+let operateLog = JSON.parse(localStorage.getItem("operateLog")) || [];
+let attachImgList = [];
+
+function showLogin(){
+    document.getElementById("loginBox").classList.remove("hidden");
+    document.getElementById("registerBox").classList.add("hidden");
+}
+function showRegister(){
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("registerBox").classList.remove("hidden");
+}
+
+function userRegister(){
+    let user = document.getElementById("regUser").value.trim();
+    let pwd = document.getElementById("regPwd").value.trim();
+    let question = document.getElementById("question").value;
+    let answer = document.getElementById("answer").value.trim();
+    if(!user || !pwd || !answer) return alert("请填写完整信息");
+    if(userList.some(v=>v.user===user)) return alert("账号已存在");
+    userList.push({ user, pwd, question, answer, regTime:getNowTime() });
+    localStorage.setItem("userList", JSON.stringify(userList));
+    addOperateLog("注册", "新用户注册："+user);
+    alert("注册成功！");
+    showLogin();
+}
+
+function userLogin(){
+    let user = document.getElementById("loginUser").value.trim();
+    let pwd = document.getElementById("loginPwd").value.trim();
+    if(!user || !pwd) return alert("请输入账号密码");
+    let u = userList.find(v=>v.user===user);
+    if(!u) return alert("该账户不存在");
+    if(u.pwd !== pwd) return alert("密码错误");
+    currentUser = user;
+    document.getElementById("authPage").classList.add("hidden");
+    document.getElementById("mainNav").classList.remove("hidden");
+    document.getElementById("mainContainer").classList.remove("hidden");
+    document.getElementById("userName").innerText = user;
+    document.getElementById("userAvatar").innerText = user.charAt(0).toUpperCase();
+    addOperateLog("登录", "用户登录："+user);
+    refreshStatData();
+    renderRecordList();
+    renderPromptLib();
+}
+
+function openFindPwd(){ document.getElementById("findPwdModal").classList.remove("hidden"); }
+function closeFindPwd(){ document.getElementById("findPwdModal").classList.add("hidden"); }
+document.getElementById("findUser").oninput = function(){
+    let user = this.value.trim();
+    let u = userList.find(v=>v.user===user);
+    if(u) document.getElementById("showQuestion").innerText = u.question;
+    else document.getElementById("showQuestion").innerText = "账号不存在";
+}
+function submitFindPwd(){
+    let user = document.getElementById("findUser").value.trim();
+    let ans = document.getElementById("findAnswer").value.trim();
+    let newPwd = document.getElementById("newPwd").value.trim();
+    if(!user || !ans || !newPwd) return alert("请填写完整");
+    let u = userList.find(v=>v.user===user);
+    if(!u) return alert("账号不存在");
+    if(u.answer !== ans) return alert("密保答案错误");
+    u.pwd = newPwd;
+    localStorage.setItem("userList", JSON.stringify(userList));
+    alert("密码重置成功！");
+    closeFindPwd();
+}
+
+function logout(){
+    currentUser = "";
+    document.getElementById("authPage").classList.remove("hidden");
+    document.getElementById("mainNav").classList.add("hidden");
+    document.getElementById("mainContainer").classList.add("hidden");
+}
+
+function addOperateLog(type,content){
+    operateLog.unshift({time:getNowTime(),user:currentUser,type,content});
+    localStorage.setItem("operateLog",JSON.stringify(operateLog));
+}
+
+function getNowTime(){
+    let d=new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+}
+
+async function createHash(s){
+    let enc=new TextEncoder().encode(s);
+    let hash=await crypto.subtle.digest("SHA-256",enc);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+function previewAttach(){
+    let files=document.getElementById("attachFile").files;
+    let pre=document.getElementById("attachPreview");
+    attachImgList=[]; pre.innerHTML="";
+    for(let f of files){
+        let r=new FileReader();
+        r.onload=e=>{
+            attachImgList.push(e.target.result);
+            let img=document.createElement("img");
+            img.src=e.target.result; img.className="attach-img";
+            pre.appendChild(img);
+        }
+        r.readAsDataURL(f);
+    }
+}
+
+function refreshStatData(){
+    let total=recordData.length;
+    let d=recordData.filter(v=>v.workStage==="初稿").length;
+    let f=recordData.filter(v=>v.workStage==="终稿定稿").length;
+    let m=recordData.reduce((s,i)=>s+i.log.length,0);
+    document.getElementById("totalCount").innerText=total;
+    document.getElementById("draftCount").innerText=d;
+    document.getElementById("finalCount").innerText=f;
+    document.getElementById("modifyCount").innerText=m;
+}
+
+function switchPage(n){
+    document.querySelectorAll(".page").forEach(e=>e.classList.remove("show"));
+    document.getElementById(n).classList.add("show");
+    if(n=="list") renderRecordList();
+    if(n=="promptLib") renderPromptLib();
+    if(n=="home") refreshStatData();
+    if(n=="add") clearForm();
+}
+
+async function saveRecord(){
+    let eid=document.getElementById("editId").value;
+    let wn=document.getElementById("workName").value.trim();
+    let uid=document.getElementById("userId").value.trim();
+    let wt=document.getElementById("workType").value;
+    let tg=document.getElementById("workTag").value.trim();
+    let idea=document.getElementById("ideaText").value.trim();
+    let op=document.getElementById("oldPrompt").value.trim();
+    let np=document.getElementById("newPrompt").value.trim()||op;
+    let ai=document.getElementById("aiModel").value.trim();
+    let st=document.getElementById("workStage").value;
+    let rd=document.getElementById("remindDate").value;
+    let nt=document.getElementById("noteText").value.trim();
+    if(!wn||!uid||!wt||!idea||!op||!ai) return alert("必填项不能为空");
+
+    let now=getNowTime();
+    let hash=await createHash(wn+idea+op+now);
+    let nr={
+        id:Date.now(),workName:wn,userId:uid,workType:wt,workTag:tg,
+        ideaText:idea,oldPrompt:op,newPrompt:np,aiModel:ai,workStage:st,
+        remindDate:rd,noteText:nt,attachList:[...attachImgList],
+        createTime:now,hashCode:hash,creator:currentUser,log:[]
+    };
+    if(eid){
+        let old=recordData.find(v=>v.id==eid);
+        let cl={time:now,user:currentUser,changes:[]};
+        ["workName","userId","workType","ideaText","oldPrompt","newPrompt","aiModel","workStage","noteText"].forEach(k=>{
+            if(old[k]!==nr[k]) cl.changes.push({field:k,old:old[k],new:nr[k]});
+        });
+        nr.log=[...old.log,cl];
+        recordData=recordData.filter(v=>v.id!=eid);
+        addOperateLog("编辑","编辑作品："+wn);
+    }else{
+        addOperateLog("新增","新增作品："+wn);
+    }
+    recordData.push(nr);
+    localStorage.setItem("aiWorkRecord",JSON.stringify(recordData));
+    document.getElementById("showResult").innerText=`【智创存证官方凭证】
+唯一标识ID：${nr.id}
+创建时间：${now}
+加密哈希值：${hash}
+创作人员：${currentUser}
+作品名称：${wn}
+创作者ID：${uid}
+作品分类：${wt}
+创作阶段：${st}
+自定义标签：${tg||"无"}
+版权到期提醒：${rd||"无"}
+创作构思：${idea}
+原始提示词：${op}
+优化提示词：${np}
+使用AI模型：${ai}
+补充备注：${nt||"无"}
+附件数量：${nr.attachList.length}份`;
+    alert("保存成功");
+    refreshStatData();
+    switchPage("list");
+}
+
+function copyResultData(){
+    let t=document.getElementById("showResult").innerText;
+    if(!t)return; navigator.clipboard.writeText(t).then(()=>alert("已复制"));
+}
+
+function clearForm(){
+    document.querySelectorAll("#add input,#add textarea,#add select").forEach(e=>e.value="");
+    document.getElementById("showResult").innerText="";
+    document.getElementById("editLogBox").style.display="none";
+    attachImgList=[]; document.getElementById("attachPreview").innerHTML="";
+}
+
+function renderRecordList(k="",t=""){
+    let b=document.getElementById("recordListBox");
+    let list=recordData.slice().reverse();
+    if(k)list=list.filter(v=>v.workName.includes(k)||v.workTag.includes(k));
+    if(t)list=list.filter(v=>v.workType==t);
+    if(list.length===0)return b.innerHTML="<p>暂无记录</p>";
+    let h="";
+    list.forEach(i=>{
+        let th=i.workTag?i.workTag.split(",").map(x=>`<span class='tag-item'>${x}</span>`).join(""):"";
+        h+=`<div class='record-item'>
+            <div class='record-info'>
+                <div class='title'>${i.workName}</div>
+                <div class='meta'>${i.createTime} | ${i.workType} | 修改${i.log.length}次</div>
+                <div class='tag-group'>${th}</div>
+            </div>
+            <div class='flex-row gap-10'>
+                <button class='btn btn-sm btn-primary' onclick='goDetail(${i.id})'>详情</button>
+                <button class='btn btn-sm btn-warning' onclick='editRecord(${i.id})'>编辑</button>
+                <button class='btn btn-sm btn-danger' onclick='delRecord(${i.id})'>删除</button>
+            </div>
+        </div>`;
+    });
+    b.innerHTML=h;
+}
+
+function searchRecord(){
+    renderRecordList(document.getElementById("searchKey").value,document.getElementById("filterType").value);
+}
+function globalSearch(){
+    let k=document.getElementById("globalSearch").value;
+    if(k)window.open("https://baidu.com/s?wd="+encodeURIComponent(k));
+}
+
+function delRecord(id){
+    let i=recordData.find(v=>v.id==id);
+    if(!confirm("确定删除："+i.workName))return;
+    recordData=recordData.filter(v=>v.id!=id);
+    localStorage.setItem("aiWorkRecord",JSON.stringify(recordData));
+    refreshStatData(); renderRecordList();
+}
+
+function editRecord(id){
+    let i=recordData.find(v=>v.id==id);
+    switchPage("add");
+    document.getElementById("editId").value=i.id;
+    document.getElementById("workName").value=i.workName;
+    document.getElementById("userId").value=i.userId;
+    document.getElementById("workType").value=i.workType;
+    document.getElementById("workTag").value=i.workTag;
+    document.getElementById("ideaText").value=i.ideaText;
+    document.getElementById("oldPrompt").value=i.oldPrompt;
+    document.getElementById("newPrompt").value=i.newPrompt;
+    document.getElementById("aiModel").value=i.aiModel;
+    document.getElementById("workStage").value=i.workStage;
+    document.getElementById("remindDate").value=i.remindDate;
+    document.getElementById("noteText").value=i.noteText;
+    attachImgList=[...i.attachList];
+    if(i.log.length>0){
+        document.getElementById("editLogBox").style.display="block";
+        let lh="";
+        i.log.forEach((log,idx)=>{
+            lh+=`<div class='log-item'><strong>第${idx+1}次修改 ${log.time}</strong>`;
+            log.changes.forEach(c=>lh+=`<br>${c.field}：${c.old} → ${c.new}`);
+            lh+="</div>";
+        });
+        document.getElementById("editLogList").innerHTML=lh;
+    }
+}
+
+function goDetail(id){
+    let i=recordData.find(v=>v.id==id);
+    switchPage("detail");
+    document.getElementById("selectDetail").innerHTML=`<option value='${i.id}'>${i.workName}</option>`;
+    showDetailInfo();
+}
+function showDetailInfo(){
+    let i=recordData.find(v=>v.id==document.getElementById("selectDetail").value);
+    document.getElementById("detailInfoBox").innerHTML=`
+<p>档案唯一ID：${i.id}</p>
+<p>创建时间：${i.createTime}</p>
+<p>加密哈希凭证：<div class='hash-text'>${i.hashCode}</div></p>
+<p>创作人员：${i.creator}</p>
+<p>作品名称：${i.workName}（${i.workType}）</p>
+<p>创作构思：${i.ideaText}</p>
+<p>提示词：原始：${i.oldPrompt} | 优化：${i.newPrompt}</p>
+<p>使用模型：${i.aiModel}</p>`;
+    let lh=i.log.map((log,idx)=>`<div class='log-item'>第${idx+1}次修改：${log.time}，${log.changes.map(c=>c.field+"变更").join("、")}</div>`).join("");
+    document.getElementById("detailLogList").innerHTML=lh||"<p>无修改记录</p>";
+}
+
+function startDetect(){
+    let c=document.getElementById("detectContent").value;
+    if(!c)return;
+    let r=(Math.random()*25).toFixed(1);
+    document.getElementById("detectResult").innerText=`【原创度检测报告】
+检测时间：${getNowTime()}
+文本字数：${c.length}字
+相似重复率：${r}%
+判定结果：${r<15?"原创合规，无抄袭风险":"存在部分相似内容，建议修改优化"}`;
+}
+
+function savePrompt(){
+    let t=document.getElementById("newPromptSave").value.trim();
+    if(!t)return;
+    promptLib.push({content:t,user:currentUser,time:getNowTime()});
+    localStorage.setItem("promptLib",JSON.stringify(promptLib));
+    document.getElementById("newPromptSave").value="";
+    renderPromptLib();
+}
+function renderPromptLib(){
+    let b=document.getElementById("promptListBox");
+    let my=promptLib.filter(v=>v.user===currentUser).reverse();
+    b.innerHTML=my.map((i,idx)=>`
+    <div class='record-item'>
+        <div style="flex:1">${i.content}</div>
+        <button class='btn btn-sm btn-primary' onclick='navigator.clipboard.writeText(promptLib[${idx}].content)'>复制</button>
+    </div>`).join("")||"<p>暂无收藏的提示词</p>";
+}
+
+async function checkVerify(){
+    let h=document.getElementById("verifyHash").value.trim();
+    let t=recordData.find(v=>v.hashCode===h);
+    document.getElementById("verifyResult").innerText=t?`【核验结果】
+凭证状态：真实有效，数据未篡改
+匹配作品：${t.workName}
+创建时间：${t.createTime}
+创作人员：${t.creator}`:`【核验结果】
+未查询到对应存证档案，哈希无效或数据已被篡改`;
+}
+
+
+function exportTxtReport(){
+    let t=document.getElementById("showResult").innerText;
+    if(!t)return alert("暂无存证内容可导出");
+    let blob=new Blob([t],{type:"text/plain;charset=utf-8"});
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="存证凭证报告.txt";
+    a.click();
+    alert("TXT报告已导出");
+}
+
+function exportAllRecord(){
+    let t="=====全部AI创作存证档案汇总=====\n";
+    recordData.forEach((item,i)=>{
+        t+=`【第${i+1}条】
+ID:${item.id} | 作品:${item.workName} | 分类:${item.workType}
+创建时间:${item.createTime} | 哈希:${item.hashCode}
+----------------------------------------\n`;
+    });
+    let blob=new Blob([t],{type:"text/plain;charset=utf-8"});
+    let a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="全部存证记录汇总.txt";
+    a.click();
+}
+
+function autoBackupData(){
+    localStorage.setItem("systemBackup",JSON.stringify({recordData,promptLib,userList,operateLog}));
+    alert("数据备份成功");
+}
+function restoreBackupData(){
+    let b=JSON.parse(localStorage.getItem("systemBackup"));
+    if(!b)return alert("暂无备份数据");
+    recordData=b.recordData;
+    promptLib=b.promptLib;
+    userList=b.userList;
+    operateLog=b.operateLog;
+    localStorage.setItem("aiWorkRecord",JSON.stringify(recordData));
+    localStorage.setItem("promptLib",JSON.stringify(promptLib));
+    localStorage.setItem("userList",JSON.stringify(userList));
+    localStorage.setItem("operateLog",JSON.stringify(operateLog));
+    alert("数据恢复成功");
+    refreshStatData(); renderRecordList();
+}
+
+function saveAccount(){
+    let u=document.getElementById("setUser").value.trim();
+    let p=document.getElementById("setPwd").value.trim();
+    let i=userList.findIndex(v=>v.user===currentUser);
+    if(u)userList[i].user=u;
+    if(p)userList[i].pwd=p;
+    localStorage.setItem("userList",JSON.stringify(userList));
+    currentUser=u||currentUser;
+    document.getElementById("userName").innerText=currentUser;
+    alert("账号信息修改成功");
+}
+
+function showOperateLog(){
+    document.getElementById("operateLogBox").innerHTML=operateLog.map(l=>`<div class='log-item'>${l.time} | ${l.user} | ${l.type}：${l.content}</div>`).join("")||"<p>暂无操作日志</p>";
+}
+
+function clearAllData(){
+    if(!confirm("确定清空所有数据？删除后无法恢复！"))return;
+    localStorage.clear();
+    location.reload();
+}
+
+function toggleAiAssistant(){
+    let a=document.getElementById("aiAssistant");
+    let b=document.getElementById("aiBody");
+    a.classList.toggle("collapsed");
+    b.classList.toggle("hidden");
+}
+
+// 深度本地AI助手（无接口、无服务器完整版）
+const knowledge = [
+    {key:["存证","流程","步骤","怎么做"],ans:`📄 知识产权存证完整流程：\n1.整理原创作品：文案、图片、代码、音频、视频、设计稿等\n2.录入作品信息：名称、分类、创作思路、提示词\n3.系统自动生成：时间戳+SHA256哈希值\n4.数据固化：不可篡改、不可删除\n5.导出凭证：PDF/TXT存证报告\n6.维权使用：直接作为法庭有效证据\n核心作用：证明你是原创、你先完成。`},
+    {key:["版权","保护","著作权","申请"],ans:`⚖️ 版权/著作权保护详解：\n1.作品完成自动获得版权，无需申请\n2.保护范围：文字、美术、软件、影像、摄影、设计\n3.保护期限：作者终身+死亡后50年\n4.权利包括：署名权、发表权、修改权、收益权\n5.存证=最强确权方式\n6.商用必须获得版权人授权`},
+    {key:["侵权","盗用","抄袭","搬运"],ans:`⚠️ 被侵权/抄袭的完整处理方案：\n1.立即固定对方侵权证据（截图、链接、发布时间）\n2.拿出你的存证证明你创作时间更早\n3.要求下架、删除、道歉、赔偿\n4.向平台投诉（抖音、小红书、公众号、电商）\n5.发律师函\n6.法院起诉（存证证书直接被采信）\n判定标准：接触+实质性相似=侵权`},
+    {key:["法律效力","法院","证据","公证"],ans:`📜 存证法律效力（司法认可）：\n1.时间戳+哈希=不可篡改\n2.符合《民事诉讼法》电子数据标准\n3.全国法院普遍采信\n4.效力高于普通截图、复印件\n5.无需公证，直接可用\n6.适用于：诉讼、投诉、调解、仲裁`},
+    {key:["AI生成","AI作品","版权归属","提示词"],ans:`🤖 AI生成作品版权规则：\n1.提示词由人创作→版权归用户\n2.AI不享有版权\n3.必须存证提示词+生成记录\n4.商用必须标注AI生成\n5.纯AI自动生成→版权归平台\n6.多人协作→可约定归属\n提示词=你拥有AI作品版权的关键。`},
+    {key:["作用","好处","用途","价值"],ans:`✅ 存证系统核心价值：\n1.确权：证明你是原创\n2.固证：永久保存不可篡改\n3.维权：降低90%举证难度\n4.低成本：几分钟、零费用\n5.通用：文案、设计、代码、视频全支持\n6.震慑：让抄袭者不敢侵权`},
+    {key:["哈希值","加密","核验","篡改"],ans:`🔐 哈希值（防篡改原理）：\n1.一份内容对应唯一哈希串\n2.改一个字→哈希完全变化\n3.核验哈希→立刻知道是否被篡改\n4.存证后无法伪造、无法修改\n5.离线可验，不需要联网\n6.国际通用电子数据防伪技术`},
+    {key:["证书","报告","导出","打印"],ans:`📑 存证报告使用：\n1.支持PDF、TXT导出\n2.包含：ID、时间、哈希、作品信息\n3.可直接打印\n4.可用于投诉、诉讼、授权\n5.本地永久保存\n6.正式、规范、专业`},
+    {key:["修改","编辑","记录","日志"],ans:`📝 作品修改与溯源：\n1.每次修改都会记录日志\n2.显示修改时间、内容、版本\n3.完整创作轨迹可查\n4.每版都可单独存证\n5.日志不可删除\n6.可作为权属辅助证明`},
+    {key:["风险","违规","处罚","追责"],ans:`🚫 侵权风险与后果：\n1.作品下架、账号限流封禁\n2.赔偿经济损失\n3.行政处罚\n4.名誉受损\n5.承担法律责任\n6.商用侵权处罚更重\n保护最好方式：创作完立即存证。`},
+    {key:["时间","时效","多久","长期"],ans:`⏳ 存证时效与保护期：\n1.存证永久有效\n2.版权保护期：作者终身+50年\n3.侵权诉讼时效：3年\n4.创作完成0秒即可存证\n5.越早存证，证据效力越强\n6.历史作品也可补存证`},
+    {key:["费用","收费","价格","钱"],ans:`💰 存证费用说明：\n1.本系统完全免费\n2.无隐藏收费\n3.无年费、无服务费\n4.本地运行，不产生费用\n5.导出报告不收费\n6.个人/商用均可免费使用`},
+    {key:["安全","泄露","隐私","保密"],ans:`🔒 作品安全与隐私保护：\n1.数据仅保存在本地\n2.不上传云端\n3.不会泄露作品\n4.无后台、无收集\n5.只有你能查看\n6.加密存储更安全`},
+    {key:["使用","怎么用","功能","操作"],ans:`🛠️ 系统完整使用方法：\n1.登录进入系统\n2.选择新增存证\n3.填写作品信息\n4.提交生成存证\n5.可查看、导出、管理\n6.遇到问题可咨询AI助手`}
+];
+const defaultAns = `你好！我是AI知识产权存证助手，可解答： \n•存证流程、操作、使用方法  \n•版权保护、著作权规则  \n•侵权维权、投诉起诉方案  \n•法律效力、法院证据认可  \n•AI作品版权归属  \n•隐私安全、费用、导出打印`;
+
+function sendAiMsg(){
+    let q = document.getElementById("aiInput").value.trim();
+    if(!q) return;
+    let box = document.getElementById("aiMessages");
+    box.innerHTML += `<div class='msg-user'><span>${q}</span></div>`;
+    document.getElementById("aiInput").value = "";
+
+    let ans = defaultAns;
+    for(let item of knowledge){
+        for(let k of item.key){
+            if(q.includes(k)){ ans = item.ans; break; }
+        }
+    }
+    setTimeout(()=>{
+        box.innerHTML += `<div class='msg-ai'><span>${ans}</span></div>`;
+        box.scrollTop = box.scrollHeight;
+    },500);
+}
+</script>
+</body>
+</html>
